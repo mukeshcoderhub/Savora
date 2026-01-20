@@ -41,7 +41,7 @@ export default function RecipeDetail() {
     return <ActivityIndicator style={{ flex: 1 }} />;
   }
 
-  if (error || !recipe) {
+  if (error) {
     return (
       <View style={styles.center}>
         <Text>Recipe not found</Text>
