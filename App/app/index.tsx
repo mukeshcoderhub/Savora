@@ -11,13 +11,16 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../src/theme/colors';
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
+
 
 
 export default function Home() {
-  const router = useRouter();
+  const [search, setSearch] = useState('');
 
+  const router = useRouter();
   /* ===== ROTATION STATE ===== */
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
@@ -36,7 +39,6 @@ export default function Home() {
       useNativeDriver: true,
     }).start();
   };
-
   return (
     <View style={styles.container}>
       {/* ===== TOP HEADER ===== */}
@@ -48,7 +50,7 @@ export default function Home() {
         <View style={styles.topRow}>
           <Text style={styles.logoText}>Savora</Text>
 
-          <TouchableOpacity style={styles.profile}>
+          <TouchableOpacity style={styles.profile} onPress={()=> router.push('/profile')}>
             <Ionicons
               name="person-outline"
               size={20}
@@ -63,13 +65,25 @@ export default function Home() {
             size={18}
             color={COLORS.textMuted}
           />
-          <TextInput
-            placeholder="Search recipes"
-            placeholderTextColor={COLORS.textMuted}
-            style={styles.searchInput}
-            autoFocus={false}
-            caretHidden={true}
-          />
+         <TextInput
+  placeholder="Search recipes"
+  placeholderTextColor={COLORS.textMuted}
+  style={styles.searchInput}
+  value={search}
+  onChangeText={setSearch}
+  returnKeyType="search"
+  onSubmitEditing={() => {
+    if (!search.trim()) return;
+
+    router.push({
+      pathname: '/recipe',
+      params: { q: search.trim() },
+    });
+
+    setSearch('');
+  }}
+/>
+
         </View>
       </ImageBackground>
 
@@ -103,11 +117,13 @@ export default function Home() {
         </TouchableOpacity>
 
         {/* CTA */}
-        <TouchableOpacity style={styles.exploreButton} onPress={() => router.push('/recipe/index')}>
-          <Text style={styles.exploreText}>
-            Explore Recipes
-          </Text>
-        </TouchableOpacity>
+        <TouchableOpacity
+  style={styles.exploreButton}
+  onPress={() => router.push('/recipe')}
+>
+  <Text style={styles.exploreText}>Explore Recipes</Text>
+</TouchableOpacity>
+
       </LinearGradient>
     </View>
   );

@@ -1,66 +1,128 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useEffect, useState } from "react";
+  import { useLocation } from "react-router-dom";
+
 
 export default function Navbar() {
   const { user, isAuthenticated, logout, loading } = useAuth();
+  const [open, setOpen] = useState(false);
 
-  if (loading) return null; // prevent flicker
+const location = useLocation();
+
+useEffect(() => {
+  setOpen(false);
+}, [location.pathname]);
+
+
+  if (loading) return null;
 
   return (
-    <nav className="sticky top-0 z-20 bg-white">
-      <div className="max-w-7xl mx-auto px-8 h-20 flex items-center justify-between">
+    <nav className="sticky top-0 z-20 bg-white shadow-sm">
+      <div className="max-w-7xl mx-auto px-6 md:px-8 h-20 flex items-center justify-between">
         
-        {/* Logo */}
-        <div className="text-2xl font-bold" style={{ color: "#2B1E12" }}>
+        {/* LOGO */}
+        <div className="text-2xl font-bold text-[#2B1E12]">
           Savora
         </div>
 
-        {/* Links */}
-        <ul className="hidden md:flex gap-10 font-medium">
+        {/* DESKTOP LINKS */}
+        <ul className="hidden md:flex gap-10 font-medium text-[#6F5B4A]">
           <li>
-            <a href="#home" className="hover:opacity-80" style={{ color: "#6F5B4A" }}>
-              Home
-            </a>
+            <a href="#home" className="hover:opacity-80">Home</a>
           </li>
           <li>
-            <a href="#about" className="hover:opacity-80" style={{ color: "#6F5B4A" }}>
-              About
-            </a>
+            <a href="#about" className="hover:opacity-80">About</a>
           </li>
           <li>
-            <a href="#contact" className="hover:opacity-80" style={{ color: "#6F5B4A" }}>
-              Contact
-            </a>
+            <a href="#contact" className="hover:opacity-80">Contact</a>
           </li>
         </ul>
 
-        {/* Auth Section */}
-        {!isAuthenticated ? (
-          <Link
-            to="/login"
-            className="px-6 py-2.5 rounded-full font-medium text-white transition hover:opacity-90"
-            style={{ backgroundColor: "#8B5A2B" }}
-          >
-            Login
-          </Link>
-        ) : (
-          <div className="flex items-center gap-4">
-        {isAuthenticated && user?.isAdmin === true && (
-  <Link className="cursor-pointer border-b-2 border-amber-950 mx-4" to="/admin">Admin</Link>
-)}
-
-
-            {/* Logout */}
-            <button
-              onClick={logout}
-              className="cursor-pointer px-5 py-2 rounded-full font-medium border transition hover:bg-gray-100"
-              style={{ color: "#2B1E12" }}
+        {/* DESKTOP AUTH */}
+        <div className="hidden md:flex items-center gap-4">
+          {!isAuthenticated ? (
+            <Link
+              to="/login"
+              className="px-6 py-2.5 rounded-full font-medium text-white bg-[#8B5A2B] hover:opacity-90"
             >
-              Logout
-            </button>
-          </div>
-        )}
+              Login
+            </Link>
+          ) : (
+            <>
+              {user?.isAdmin && (
+                <Link
+                  to="/admin"
+                  className="border-b-2 border-amber-950 font-medium"
+                >
+                  Admin
+                </Link>
+              )}
+              <button
+                onClick={logout}
+                className="px-5 py-2 rounded-full border font-medium text-[#2B1E12] hover:bg-gray-100"
+              >
+                Logout
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* MOBILE MENU BUTTON */}
+        <button
+          className="md:hidden text-2xl"
+          onClick={() => setOpen(!open)}
+          aria-label="Toggle menu"
+        >
+          ☰
+        </button>
       </div>
+
+      {/* MOBILE MENU */}
+      {open && (
+        <div className="md:hidden bg-white border-t px-6 py-6 flex flex-col gap-4 text-[#6F5B4A]">
+          <a href="#home" onClick={() => setOpen(false)} className="block">
+            Home
+          </a>
+          <a href="#about" onClick={() => setOpen(false)} className="block">
+            About
+          </a>
+          <a href="#contact" onClick={() => setOpen(false)} className="block">
+            Contact
+          </a>
+
+          {!isAuthenticated ? (
+            <Link
+              to="/login"
+              onClick={() => setOpen(false)}
+              className="block w-full text-center py-2 rounded-full bg-[#8B5A2B] text-white"
+            >
+              Login
+            </Link>
+          ) : (
+            <>
+              {user?.isAdmin && (
+                <Link
+                  to="/admin"
+                  onClick={() => setOpen(false)}
+                  className="block font-medium"
+                >
+                  Admin
+                </Link>
+              )}
+              <button
+                onClick={() => {
+                  logout();
+                  setOpen(false);
+                }}
+                className="w-full text-left py-2 font-medium"
+              >
+                Logout
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </nav>
   );
 }

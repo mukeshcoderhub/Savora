@@ -7,6 +7,7 @@ import {
 import { checkAuth } from "../api/auth";
 import type { ReactNode } from 'react';
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 interface User {
   id: string;
@@ -40,14 +41,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = async () => {
-    await fetch("http://localhost:5000/api/auth/logout", {
+ const logout = async () => {
+  try {
+    await fetch(`${BASE_URL}/auth/logout`, {
       method: "POST",
       credentials: "include",
     });
+  } finally {
     setUser(null);
-  };
-
+  }
+};
   useEffect(() => {
     refreshAuth().finally(() => setLoading(false));
   }, []);

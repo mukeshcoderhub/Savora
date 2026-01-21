@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  createRecipe,
-  getRecipeById,
-  updateRecipe,
-} from "../api/recipes";
+import { createRecipe, getRecipeById, updateRecipe } from "../api/recipes";
+
+/* ---------------- TYPES ---------------- */
 
 type Ingredient = {
   name: string;
@@ -16,64 +14,95 @@ type Step = {
   instruction: string;
 };
 
+/* ---------------- COMPONENT ---------------- */
+
 export default function RecipeForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
 
-  // BASIC INFO
+  /* -------- BASIC INFO -------- */
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("curry");
   const [coverImage, setCoverImage] = useState("");
   const [status, setStatus] = useState<"draft" | "published">("draft");
 
-  // EXTRA DETAILS (MATCH DB)
+  /* -------- DETAILS -------- */
   const [difficulty, setDifficulty] = useState("easy");
   const [dietType, setDietType] = useState("veg");
   const [tags, setTags] = useState("");
 
-  // INGREDIENTS & STEPS
+  /* -------- TIME & SERVINGS -------- */
+  const [prepTime, setPrepTime] = useState(0);
+  const [cookTime, setCookTime] = useState(0);
+  const [servings, setServings] = useState(0);
+
+  /* -------- INGREDIENTS & STEPS -------- */
   const [ingredients, setIngredients] = useState<Ingredient[]>([
     { name: "", quantity: "", unit: "" },
   ]);
-
   const [steps, setSteps] = useState<Step[]>([{ instruction: "" }]);
 
   const [loading, setLoading] = useState(false);
 
-  // LOAD RECIPE (EDIT MODE)
+  /* -------- LOAD RECIPE -------- */
   useEffect(() => {
     if (!isEdit) return;
 
-    const loadRecipe = async () => {
-      try {
-        const data = await getRecipeById(id!);
-
+    getRecipeById(id!)
+      .then((data) => {
         setTitle(data.title);
-        setDescription(data.description || "");
+        setDescription(data.description);
         setCategory(data.category);
         setCoverImage(data.coverImage);
         setStatus(data.status);
-
-        setDifficulty(data.difficulty || "easy");
-        setDietType(data.dietType || "veg");
-        setTags(data.tags ? data.tags.join(", ") : "");
-
+        setDifficulty(data.difficulty);
+        setDietType(data.dietType);
+        setTags(data.tags?.join(", ") || "");
+        setPrepTime(data.prepTime);
+        setCookTime(data.cookTime);
+        setServings(data.servings);
         setIngredients(data.ingredients);
         setSteps(data.steps.map((s: any) => ({ instruction: s.instruction })));
-      } catch {
-        alert("Failed to load recipe");
-      }
-    };
-
-    loadRecipe();
+      })
+      .catch(() => alert("Failed to load recipe"));
   }, [id, isEdit]);
 
-  // SUBMIT
+  /* -------- REQUIRED VALIDATION -------- */
+  const validateForm = () => {
+    if (!title.trim()) return "Recipe title is required";
+    if (!description.trim()) return "Description is required";
+    if (!category) return "Category is required";
+    if (!coverImage.trim()) return "Cover image is required";
+
+    if (prepTime <= 0) return "Prep time must be greater than 0";
+    if (cookTime <= 0) return "Cook time must be greater than 0";
+    if (servings <= 0) return "Servings must be greater than 0";
+
+    if (!difficulty) return "Difficulty is required";
+    if (!dietType) return "Diet type is required";
+
+    for (const ing of ingredients) {
+      if (!ing.name.trim() || !ing.quantity.trim() || !ing.unit.trim()) {
+        return "All ingredient fields are required";
+      }
+    }
+
+    for (const step of steps) {
+      if (!step.instruction.trim()) {
+        return "All steps are required";
+      }
+    }
+
+    return null;
+  };
+
+  /* -------- SUBMIT -------- */
   const handleSubmit = async () => {
-    if (!title || !category || !coverImage) {
-      alert("Title, category and cover image are required");
+    const error = validateForm();
+    if (error) {
+      alert(error);
       return;
     }
 
@@ -83,30 +112,27 @@ export default function RecipeForm() {
       title,
       description,
       category,
+      coverImage,
+      status,
+      difficulty,
+      dietType,
+      tags: tags.split(",").map(t => t.trim()).filter(Boolean),
+      prepTime,
+      cookTime,
+      servings,
       ingredients,
       steps: steps.map((s, i) => ({
         stepNumber: i + 1,
         instruction: s.instruction,
       })),
-      coverImage,
-      status,
-      difficulty,
-      dietType,
-      tags: tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean),
     };
 
     try {
-      if (isEdit) {
-        await updateRecipe(id!, recipeData);
-        alert("Recipe updated successfully ✅");
-      } else {
-        await createRecipe(recipeData);
-        alert("Recipe created successfully ✅");
-      }
+      isEdit
+        ? await updateRecipe(id!, recipeData)
+        : await createRecipe(recipeData);
 
+      alert(isEdit ? "Recipe updated ✅" : "Recipe created ✅");
       navigate("/admin/recipes");
     } catch (err: any) {
       alert(err.message || "Something went wrong");
@@ -115,35 +141,19 @@ export default function RecipeForm() {
     }
   };
 
+  /* ---------------- UI ---------------- */
+
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl w-full">
       <h2 className="text-2xl font-bold mb-6">
         {isEdit ? "Edit Recipe" : "Add Recipe"}
       </h2>
 
       {/* BASIC INFO */}
-      <section className="card mb-6">
-        <h3 className="font-semibold mb-4">Basic Info</h3>
-
-        <input
-          className="input mb-3"
-          placeholder="Recipe title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-
-        <textarea
-          className="input mb-3"
-          placeholder="Short description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-
-        <select
-          className="input"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-        >
+      <section className="card mb-6 space-y-3">
+        <input className="input" placeholder="Recipe Title *" value={title} onChange={e => setTitle(e.target.value)} />
+        <textarea className="input" placeholder="Description *" value={description} onChange={e => setDescription(e.target.value)} />
+        <select className="input" value={category} onChange={e => setCategory(e.target.value)}>
           <option value="snack">Snack</option>
           <option value="sabzi">Sabzi</option>
           <option value="curry">Curry</option>
@@ -153,149 +163,95 @@ export default function RecipeForm() {
         </select>
       </section>
 
-      {/* RECIPE DETAILS */}
-      <section className="card mb-6">
-        <h3 className="font-semibold mb-4">Recipe Details</h3>
+      {/* DETAILS */}
+      <section className="card mb-6 space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[
+            ["Prep Time (mins)", prepTime, setPrepTime],
+            ["Cook Time (mins)", cookTime, setCookTime],
+            ["Servings", servings, setServings],
+          ].map(([label, value, setter]: any, i) => (
+            <div key={i}>
+              <label className="block text-sm mb-1">{label} *</label>
+              <input
+                type="number"
+                className="input"
+                value={value}
+                onChange={e => setter(Number(e.target.value))}
+                min={1}
+              />
+            </div>
+          ))}
+        </div>
 
-        <select
-          className="input mb-3"
-          value={difficulty}
-          onChange={(e) => setDifficulty(e.target.value)}
-        >
+        <select className="input" value={difficulty} onChange={e => setDifficulty(e.target.value)}>
           <option value="easy">Easy</option>
           <option value="medium">Medium</option>
           <option value="hard">Hard</option>
         </select>
 
-        <select
-          className="input mb-3"
-          value={dietType}
-          onChange={(e) => setDietType(e.target.value)}
-        >
+        <select className="input" value={dietType} onChange={e => setDietType(e.target.value)}>
           <option value="veg">Veg</option>
           <option value="non-veg">Non-Veg</option>
           <option value="vegan">Vegan</option>
         </select>
 
-        <input
-          className="input"
-          placeholder="Tags (comma separated e.g. paneer, spicy)"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-        />
+        <input className="input" placeholder="Tags (comma separated)" value={tags} onChange={e => setTags(e.target.value)} />
       </section>
 
       {/* INGREDIENTS */}
       <section className="card mb-6">
-        <h3 className="font-semibold mb-4">Ingredients</h3>
-
-        {ingredients.map((ing, index) => (
-          <div key={index} className="flex gap-2 mb-2">
-            <input
-              className="input"
-              placeholder="Name"
-              value={ing.name}
-              onChange={(e) => {
-                const copy = [...ingredients];
-                copy[index].name = e.target.value;
-                setIngredients(copy);
-              }}
-            />
-
-            <input
-              className="input"
-              placeholder="Quantity"
-              value={ing.quantity}
-              onChange={(e) => {
-                const copy = [...ingredients];
-                copy[index].quantity = e.target.value;
-                setIngredients(copy);
-              }}
-            />
-
-            <input
-              className="input"
-              placeholder="Unit"
-              value={ing.unit}
-              onChange={(e) => {
-                const copy = [...ingredients];
-                copy[index].unit = e.target.value;
-                setIngredients(copy);
-              }}
-            />
+        {ingredients.map((ing, i) => (
+          <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+            <input className="input" placeholder="Name *" value={ing.name} onChange={e => {
+              const c = [...ingredients]; c[i].name = e.target.value; setIngredients(c);
+            }} />
+            <input className="input" placeholder="Qty *" value={ing.quantity} onChange={e => {
+              const c = [...ingredients]; c[i].quantity = e.target.value; setIngredients(c);
+            }} />
+            <input className="input" placeholder="Unit *" value={ing.unit} onChange={e => {
+              const c = [...ingredients]; c[i].unit = e.target.value; setIngredients(c);
+            }} />
           </div>
         ))}
-
-        <button
-          type="button"
-          onClick={() =>
-            setIngredients([...ingredients, { name: "", quantity: "", unit: "" }])
-          }
-          className="text-sm text-amber-600"
-        >
-          + Add ingredient
+        <button onClick={() => setIngredients([...ingredients, { name: "", quantity: "", unit: "" }])} className="text-sm text-amber-600">
+          + Add Ingredient
         </button>
       </section>
 
       {/* STEPS */}
       <section className="card mb-6">
-        <h3 className="font-semibold mb-4">Steps</h3>
-
-        {steps.map((step, index) => (
+        {steps.map((s, i) => (
           <textarea
-            key={index}
+            key={i}
             className="input mb-2"
-            placeholder={`Step ${index + 1}`}
-            value={step.instruction}
-            onChange={(e) => {
-              const copy = [...steps];
-              copy[index].instruction = e.target.value;
-              setSteps(copy);
+            placeholder={`Step ${i + 1} *`}
+            value={s.instruction}
+            onChange={e => {
+              const c = [...steps]; c[i].instruction = e.target.value; setSteps(c);
             }}
           />
         ))}
-
-        <button
-          type="button"
-          onClick={() => setSteps([...steps, { instruction: "" }])}
-          className="text-sm text-amber-600"
-        >
-          + Add step
+        <button onClick={() => setSteps([...steps, { instruction: "" }])} className="text-sm text-amber-600">
+          + Add Step
         </button>
       </section>
 
       {/* PUBLISH */}
-      <section className="card mb-6">
-        <h3 className="font-semibold mb-4">Publish</h3>
-
-        <input
-          className="input mb-3"
-          placeholder="Cover image URL"
-          value={coverImage}
-          onChange={(e) => setCoverImage(e.target.value)}
-        />
-
-        <select
-          className="input"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as any)}
-        >
+      <section className="card mb-6 space-y-3">
+        <input className="input" placeholder="Cover Image URL *" value={coverImage} onChange={e => setCoverImage(e.target.value)} />
+        <select className="input" value={status} onChange={e => setStatus(e.target.value as any)}>
           <option value="draft">Draft</option>
           <option value="published">Published</option>
         </select>
       </section>
 
-      {/* ACTION */}
       <button
         disabled={loading}
         onClick={handleSubmit}
-        className="px-6 py-3 bg-amber-600 text-white rounded-xl"
+        className="px-6 py-3 bg-amber-600 text-white rounded-xl w-full sm:w-auto"
       >
-        {loading
-          ? "Saving..."
-          : isEdit
-          ? "Update Recipe"
-          : "Save Recipe"}
+        {loading ? "Saving..." : isEdit ? "Update Recipe" : "Save Recipe"}
       </button>
     </div>
   );

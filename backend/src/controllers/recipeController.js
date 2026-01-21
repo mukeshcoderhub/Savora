@@ -90,14 +90,23 @@ export const deleteRecipe = async (req, res) => {
 
 
 export const getPublishedRecipes = async (req, res) => {
-  const { search, category } = req.query;
+  try {
+    const { search, category } = req.query;
 
-  const filter = { status: "published" };
+    const filter = { status: 'published' };
 
-  if (category) filter.category = category;
-  if (search) filter.title = { $regex: search, $options: "i" };
+    if (category) filter.category = category;
 
-  const recipes = await Recipe.find(filter).sort({ createdAt: -1 });
+    if (search) {
+      filter.title = { $regex: search, $options: 'i' };
+    }
 
-  res.json(recipes);
+    const recipes = await Recipe.find(filter).sort({ createdAt: -1 });
+
+    res.status(200).json(recipes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
 };
+
