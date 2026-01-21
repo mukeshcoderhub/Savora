@@ -1,2 +1,2 @@
-VITE_API_BASE_URL=http://localhost:5000/api
-VITE_GOOGLE_CLIENT_ID=221293480464-bs47klch5es16vahrns55cp8e0lo0sn8.apps.googleusercontent.com
+VITE_API_BASE_URL=backend url
+VITE_GOOGLE_CLIENT_ID=google client id 
