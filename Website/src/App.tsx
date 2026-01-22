@@ -19,8 +19,9 @@ function App() {
           path="/login"
           element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
         />
-
-        <Route path="/admin/*" element={<AdminLayout />}>
+        <Route path="/admin"   element={
+    isAuthenticated ? <AdminLayout /> : <Navigate to="/login" replace />
+  }>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="recipes" element={<RecipeList />} />
